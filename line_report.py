@@ -14,7 +14,7 @@ Example: python line_report.py 20260308 ./20260308 d
 # Change this to match your LINE language
 # Thai: รูป
 # English: [photo]
-PHOTO_MARKER = "รูป"
+PHOTO_MARKER = "[Photo]"
 # ====================
 
 import os
@@ -27,10 +27,22 @@ def find_chatlog(folder):
     """Find chatlog file: [LINE]Keep Memo.txt or any single .txt file."""
     folder_path = Path(folder)
     
-    # Try [LINE]Keep Memo.txt first
-    keep_memo = folder_path / "[LINE]Keep Memo.txt"
-    if keep_memo.exists():
-        return keep_memo
+    # Try [LINE]Keep Memo.txt first (various patterns)
+    patterns = [
+        "[LINE]Keep Memo.txt",
+        "[LINE] Chat with Keep Memo.txt",
+        "[LINE] Chat history with Keep Memo.txt"
+    ]
+    
+    for pattern in patterns:
+        keep_memo = folder_path / pattern
+        if keep_memo.exists():
+            return keep_memo
+    
+    # Also try finding any file starting with [LINE]
+    for f in folder_path.iterdir():
+        if f.is_file() and f.suffix.lower() == '.txt' and f.name.startswith('[LINE]'):
+            return f
     
     # Find all .txt files
     txt_files = list(folder_path.glob("*.txt"))
@@ -236,14 +248,14 @@ def generate_report(entries, image_files, report_name, output_path):
             # Column 1: odd images
             md_content += "```col-md\n"
             for img in odd_imgs:
-                md_content += f"{img}\n"
+                md_content += f"![[{img}]]\n"
             md_content += "```\n"
             
             # Column 2: even images
             if even_imgs:
                 md_content += "```col-md\n"
                 for img in even_imgs:
-                    md_content += f"{img}\n"
+                    md_content += f"![[{img}]]\n"
                 md_content += "```\n"
             
             md_content += "````\n\n"
