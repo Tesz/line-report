@@ -11,10 +11,22 @@ Example: python line_report.py 20260308 ./20260308 d
 """
 
 # === CONFIGURATION ===
-# Change this to match your LINE language
-# Thai: รูป
-# English: [photo] or Photos
-PHOTO_MARKER = "Photos"
+# Media markers - supports multiple languages (array)
+MEDIA_MARKERS = [
+    "รูป",        # Thai
+    "[Photo]",    # English
+    "Photos",     # English
+    "写真",       # Japanese
+    "照片",       # Chinese
+    "วิดีโอ",     # Thai video
+    "Video",      # English video
+]
+
+# Supported media extensions
+IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif']
+VIDEO_EXTENSIONS = ['.mp4', '.mov', '.avi']
+
+# Job title prefix
 JOB_TITLE = "งานที่"
 # ====================
 
@@ -59,36 +71,39 @@ def find_chatlog(folder):
     return txt_files[0]
 
 
-def get_images_by_name(folder):
-    """Get all image files sorted by name (alphabetically, ascending)."""
+def get_media_by_name(folder):
+    """Get all media files (images + videos) sorted by name (alphabetically, ascending)."""
     folder_path = Path(folder)
-    images = []
+    media = []
+    
+    all_extensions = IMAGE_EXTENSIONS + VIDEO_EXTENSIONS
     
     for f in folder_path.iterdir():
-        if f.is_file() and f.suffix.lower() in ['.jpg', '.jpeg', '.png', '.gif']:
-            # No pattern requirement - just get all images
-            images.append((f.name, f.name))  # (sort_key, original_name)
+        if f.is_file() and f.suffix.lower() in all_extensions:
+            media.append((f.name, f.name))  # (sort_key, original_name)
     
     # Sort alphabetically by filename
-    images.sort(key=lambda x: x[0])
-    return images
+    media.sort(key=lambda x: x[0])
+    return media
 
 
-def get_images_by_date(folder):
-    """Get all image files sorted by creation date (oldest first)."""
+def get_media_by_date(folder):
+    """Get all media files sorted by creation date (oldest first)."""
     folder_path = Path(folder)
-    images = []
+    media = []
+    
+    all_extensions = IMAGE_EXTENSIONS + VIDEO_EXTENSIONS
     
     for f in folder_path.iterdir():
-        if f.is_file() and f.suffix.lower() in ['.jpg', '.jpeg', '.png', '.gif']:
+        if f.is_file() and f.suffix.lower() in all_extensions:
             # Get creation time
             ctime = f.stat().st_ctime
             # Use original name as secondary sort for stability
-            images.append((ctime, f.name))
+            media.append((ctime, f.name))
     
     # Sort by date (ASC), then by name for stability
-    images.sort(key=lambda x: (x[0], x[1]))
-    return images
+    media.sort(key=lambda x: (x[0], x[1]))
+    return media
 
 
 def extract_entries(chat_content):
@@ -97,7 +112,7 @@ def extract_entries(chat_content):
     
     lines = chat_content.split('\n')
     current_message = ""
-    photo_count = 0
+    media_count = 0
     last_timestamp = None
     
     for line in lines:
@@ -110,68 +125,68 @@ def extract_entries(chat_content):
         # Can be with or without quotes around message
         timestamp_match = re.match(r'^(\d{2}:\d{2})\s+(.+?)\s+"(.+)"', line_stripped)
         timestamp_no_quote_match = re.match(r'^(\d{2}:\d{2})\s+(.+?)\s+(.+)$', line_stripped)
-        photo_only_match = re.match(r'^(\d{2}:\d{2})\s+(.+?)\s+' + PHOTO_MARKER + r'$', line_stripped)
+        photo_only_match = re.match(r'^(\d{2}:\d{2})\s+(.+?)\s+(.+)$', line_stripped)
         
         if timestamp_match:
             # Save previous entry if exists
-            if current_message or photo_count > 0:
+            if current_message or media_count > 0:
                 entries.append({
                     'message': current_message.strip(),
-                    'photo_count': photo_count
+                    'media_count': media_count
                 })
             
             # Start new entry with quoted message
             current_message = timestamp_match.group(3)
-            photo_count = 0
+            media_count = 0
             last_timestamp = timestamp_match.group(1)
             
         elif timestamp_no_quote_match:
-            # Check if it's รูป (photo)
-            if timestamp_no_quote_match.group(3).strip() == PHOTO_MARKER:
+            # Check if it's a media marker (photo/video)
+            if timestamp_no_quote_match.group(3).strip() in MEDIA_MARKERS:
                 ts = timestamp_no_quote_match.group(1)
                 
                 # Save previous entry if exists AND timestamp changed
-                if (current_message or photo_count > 0) and ts != last_timestamp:
+                if (current_message or media_count > 0) and ts != last_timestamp:
                     entries.append({
                         'message': current_message.strip(),
-                        'photo_count': photo_count
+                        'media_count': media_count
                     })
                     current_message = ""
-                    photo_count = 0
+                    media_count = 0
                 
-                photo_count += 1
+                media_count += 1
                 last_timestamp = ts
             else:
                 # Save previous entry if exists
-                if current_message or photo_count > 0:
+                if current_message or media_count > 0:
                     entries.append({
                         'message': current_message.strip(),
-                        'photo_count': photo_count
+                        'media_count': media_count
                     })
                 
                 # Start new entry without quotes
                 current_message = timestamp_no_quote_match.group(3)
-                photo_count = 0
+                media_count = 0
                 last_timestamp = timestamp_no_quote_match.group(1)
                 
         elif photo_only_match:
             ts = photo_only_match.group(1)
             
             # Save previous entry if exists AND timestamp changed
-            if (current_message or photo_count > 0) and ts != last_timestamp:
+            if (current_message or media_count > 0) and ts != last_timestamp:
                 entries.append({
                     'message': current_message.strip(),
-                    'photo_count': photo_count
+                    'media_count': media_count
                 })
                 current_message = ""
-                photo_count = 0
+                media_count = 0
             
-            photo_count += 1
+            media_count += 1
             last_timestamp = ts
             
-        elif line_stripped == PHOTO_MARKER:
-            # Photo marker on separate line - add to current entry's photo count
-            photo_count += 1
+        elif line_stripped in MEDIA_MARKERS:
+            # Media marker on separate line - add to current entry's media count
+            media_count += 1
         elif current_message:
             # Continuation of message (multi-line)
             if current_message and not current_message.endswith('\n'):
@@ -179,10 +194,10 @@ def extract_entries(chat_content):
             current_message += line_stripped
     
     # Add last entry
-    if current_message or photo_count > 0:
+    if current_message or media_count > 0:
         entries.append({
             'message': current_message.strip(),
-            'photo_count': photo_count
+            'media_count': media_count
         })
     
     return entries
@@ -223,12 +238,12 @@ def generate_report(entries, image_files, report_name, output_path):
         md_content += f"## {JOB_TITLE} {i}\n"
         md_content += f"{entry['message']}\n\n"
         
-        photo_count = entry['photo_count']
+        media_count = entry['media_count']
         
-        if photo_count > 0:
+        if media_count > 0:
             # Get images for this entry
             entry_images = []
-            for _ in range(photo_count):
+            for _ in range(media_count):
                 if img_idx < len(ordered_images):
                     entry_images.append(ordered_images[img_idx])
                     img_idx += 1
@@ -301,10 +316,10 @@ def main():
     
     # Get images based on sort option
     if sort_option == 'd':
-        image_files = get_images_by_date(folder)
+        image_files = get_media_by_date(folder)
         print(f"Found {len(image_files)} images (sorted by date)")
     else:
-        image_files = get_images_by_name(folder)
+        image_files = get_media_by_name(folder)
         print(f"Found {len(image_files)} images (sorted by name)")
     
     # Generate output path
