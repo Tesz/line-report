@@ -43,17 +43,28 @@ The system searches for chatlog file in this order:
 ## หัวข้อที่ 1
 ข้อความทั้งหมดก่อนถึงรูปภาพ
 ````col
+```col-md
 ชื่อรูปที่1.jpg
+```
+```col-md
 ชื่อรูปที่2.jpg
+```
 ````
 
 ## หัวข้อที่ 2
 ข้อความทั้งหมดก่อนถึงรูปภาพ
 ````col
+```col-md
 ชื่อรูปที่3.jpg
-ชื่อรูปที่4.jpg
-````
+ชื่อรูปที่5.jpg
+ชื่อรูปที่7.jpg
 ```
+```col-md
+ชื่อรูปที่4.jpg
+ชื่อรูปที่6.jpg
+ชื่อรูปที่8.jpg
+```
+````
 
 ### 3.5 Image Ordering for Multiple Photos
 When an entry has multiple images, the images are **interleaved** (สลับเรียง):
