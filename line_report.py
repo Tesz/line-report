@@ -40,20 +40,17 @@ def find_chatlog(folder):
 
 
 def get_images_by_name(folder):
-    """Get all image files sorted by name (IMG_001 -> IMG_999)."""
+    """Get all image files sorted by name (alphabetically, ascending)."""
     folder_path = Path(folder)
     images = []
     
     for f in folder_path.iterdir():
         if f.is_file() and f.suffix.lower() in ['.jpg', '.jpeg', '.png', '.gif']:
-            if f.name.upper().startswith('IMG_'):
-                # Extract number from IMG_XXX
-                match = re.search(r'IMG_(\d+)', f.name.upper())
-                if match:
-                    num = int(match.group(1))
-                    images.append((num, f.name))
+            # No pattern requirement - just get all images
+            images.append((f.name, f.name))  # (sort_key, original_name)
     
-    images.sort(key=lambda x: x[0])  # Ascending by name
+    # Sort alphabetically by filename
+    images.sort(key=lambda x: x[0])
     return images
 
 
@@ -64,12 +61,13 @@ def get_images_by_date(folder):
     
     for f in folder_path.iterdir():
         if f.is_file() and f.suffix.lower() in ['.jpg', '.jpeg', '.png', '.gif']:
-            if f.name.upper().startswith('IMG_'):
-                # Get creation time
-                ctime = f.stat().st_ctime
-                images.append((ctime, f.name))
+            # Get creation time
+            ctime = f.stat().st_ctime
+            # Use original name as secondary sort for stability
+            images.append((ctime, f.name))
     
-    images.sort(key=lambda x: x[0])  # Ascending by date
+    # Sort by date (ASC), then by name for stability
+    images.sort(key=lambda x: (x[0], x[1]))
     return images
 
 
@@ -192,6 +190,7 @@ def generate_report(entries, image_files, report_name, output_path):
     """Generate markdown report."""
     
     # Get image names in order (already sorted by name or date)
+    # image_files is list of (sort_key, original_name)
     ordered_images = [img[1] for img in image_files]
     
     # Track image index
