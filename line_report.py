@@ -86,11 +86,11 @@ def extract_entries(chat_content):
             continue
             
         # Check if this line starts with a timestamp (entry start)
-        # Format: HH:MM Name Message or HH:MM Name [Photo]
+        # Format: HH:MM Name Message or HH:MM Name รูป
         # Can be with or without quotes around message
         timestamp_match = re.match(r'^(\d{2}:\d{2})\s+(.+?)\s+"(.+)"', line_stripped)
         timestamp_no_quote_match = re.match(r'^(\d{2}:\d{2})\s+(.+?)\s+(.+)$', line_stripped)
-        photo_only_match = re.match(r'^(\d{2}:\d{2})\s+(.+?)\s+\[Photo\]$', line_stripped)
+        photo_only_match = re.match(r'^(\d{2}:\d{2})\s+(.+?)\s+รูป$', line_stripped)
         
         if timestamp_match:
             # Save previous entry if exists
@@ -106,8 +106,8 @@ def extract_entries(chat_content):
             last_timestamp = timestamp_match.group(1)
             
         elif timestamp_no_quote_match:
-            # Check if it's [Photo]
-            if timestamp_no_quote_match.group(3).strip() == '[Photo]':
+            # Check if it's รูป (photo)
+            if timestamp_no_quote_match.group(3).strip() == 'รูป':
                 ts = timestamp_no_quote_match.group(1)
                 
                 # Save previous entry if exists AND timestamp changed
@@ -149,8 +149,8 @@ def extract_entries(chat_content):
             photo_count += 1
             last_timestamp = ts
             
-        elif line_stripped == '[Photo]':
-            # [Photo] on separate line - add to current entry's photo count
+        elif line_stripped == 'รูป':
+            # รูป on separate line - add to current entry's photo count
             photo_count += 1
         elif current_message:
             # Continuation of message (multi-line)
