@@ -45,12 +45,9 @@ Reset หน้าตู้และ run c/v ok.
 10:56 Trin・ティン [Photo]
 14:21 Trin・ティン สภาพจาระบี Roller PP205
 - Roller DFK มาร์คเขียว( 2 อาทิตย์) จาระบี molykote สภาพเริ่มเข้าไปในลูกปืน สภาพยังดีสีเริ่มเทาเข้ม
-
 - Roller DFK มาร์คชมพู(1 อาทิตย์) จาระบี molykote สภาพยังดี ขาวเหลือง
-
 - Roller Overhaul (1 อาทิตย์)
 จาระบี Lumax สภาพเปลี่ยนจากสีขาวเป็นดำ แต่ยังไม่แห้งครับ
-
 ต่อไปจะขอถอดเช็คจาระบีใน Roller ทุกๆ 1 เดือนก่อน เพื่อประเมินความเสี่ยงครับ
 14:21 Trin・ティン [Photo]
 14:21 Trin・ティン [Photo]
@@ -70,7 +67,7 @@ Reset หน้าตู้และ run c/v ok.
 
 ### 3.4 Report Structure
 
-```markdown
+``````markdown
 # 20260308
 
 ## หัวข้อที่ 1
@@ -98,6 +95,7 @@ Reset หน้าตู้และ run c/v ok.
 ![[ชื่อรูปที่8.jpg]]
 ```
 ````
+``````
 
 ### 3.5 Image Ordering for Multiple Photos
 When an entry has multiple images, the images are **interleaved** (สลับเรียง):
