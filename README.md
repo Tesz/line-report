@@ -6,6 +6,15 @@ Python program to generate markdown report from LINE chat export files and image
 
 - Python 3.x
 
+## Configuration
+
+Edit `PHOTO_MARKER` in `line_report.py` to match your LINE language:
+
+```python
+PHOTO_MARKER = "[Photo]"  # English
+# PHOTO_MARKER = "รูป"    # Thai
+```
+
 ## Usage
 
 ```bash
@@ -34,12 +43,32 @@ python line_report.py 20260308 C:\data\20260308 n
 
 ```
 20260308/
-├── [LINE]Keep Memo.txt    # Chatlog file
-├── IMG_001.jpg             # Image files
-├── IMG_002.jpg
-└── IMG_003.jpg
+├── [LINE] Keep Memo.txt    # Chatlog file (or [LINE]Keep Memo.txt)
+├── 20260308-1-001.jpg      # Image files
+├── 20260308-1-002.jpg
+└── 20260308-2-001.jpg
 ```
 
-## Output
+## Output Format
 
-Generates `{Report Name}.md` in the same folder.
+The program generates markdown with bootstrap columns:
+
+```markdown
+# 20260308
+
+## หัวข้อที่ 1
+ข้อความก่อนรูปภาพ
+````col
+```col-md
+![[image1.jpg]]
+![[image3.jpg]]
+```
+```col-md
+![[image2.jpg]]
+![[image4.jpg]]
+````
+```
+
+Images are automatically ordered:
+- Odd images (1,3,5) → Column 1
+- Even images (2,4,6) → Column 2
