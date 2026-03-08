@@ -13,8 +13,9 @@ Example: python line_report.py 20260308 ./20260308 d
 # === CONFIGURATION ===
 # Change this to match your LINE language
 # Thai: รูป
-# English: [photo]
-PHOTO_MARKER = "[Photo]"
+# English: [photo] or Photos
+PHOTO_MARKER = "Photos"
+JOB_TITLE = "งานที่"
 # ====================
 
 import os
@@ -219,7 +220,7 @@ def generate_report(entries, image_files, report_name, output_path):
     md_content = f"# {report_name}\n\n"
     
     for i, entry in enumerate(entries, 1):
-        md_content += f"## หัวข้อที่ {i}\n"
+        md_content += f"## {JOB_TITLE} {i}\n"
         md_content += f"{entry['message']}\n\n"
         
         photo_count = entry['photo_count']
