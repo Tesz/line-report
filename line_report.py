@@ -10,6 +10,13 @@ Usage: python line_report.py <Report Name> <Folder> <Sort>
 Example: python line_report.py 20260308 ./20260308 d
 """
 
+# === CONFIGURATION ===
+# Change this to match your LINE language
+# Thai: รูป
+# English: [photo]
+PHOTO_MARKER = "รูป"
+# ====================
+
 import os
 import sys
 import re
@@ -90,7 +97,7 @@ def extract_entries(chat_content):
         # Can be with or without quotes around message
         timestamp_match = re.match(r'^(\d{2}:\d{2})\s+(.+?)\s+"(.+)"', line_stripped)
         timestamp_no_quote_match = re.match(r'^(\d{2}:\d{2})\s+(.+?)\s+(.+)$', line_stripped)
-        photo_only_match = re.match(r'^(\d{2}:\d{2})\s+(.+?)\s+รูป$', line_stripped)
+        photo_only_match = re.match(r'^(\d{2}:\d{2})\s+(.+?)\s+' + PHOTO_MARKER + r'$', line_stripped)
         
         if timestamp_match:
             # Save previous entry if exists
@@ -107,7 +114,7 @@ def extract_entries(chat_content):
             
         elif timestamp_no_quote_match:
             # Check if it's รูป (photo)
-            if timestamp_no_quote_match.group(3).strip() == 'รูป':
+            if timestamp_no_quote_match.group(3).strip() == PHOTO_MARKER:
                 ts = timestamp_no_quote_match.group(1)
                 
                 # Save previous entry if exists AND timestamp changed
@@ -149,8 +156,8 @@ def extract_entries(chat_content):
             photo_count += 1
             last_timestamp = ts
             
-        elif line_stripped == 'รูป':
-            # รูป on separate line - add to current entry's photo count
+        elif line_stripped == PHOTO_MARKER:
+            # Photo marker on separate line - add to current entry's photo count
             photo_count += 1
         elif current_message:
             # Continuation of message (multi-line)
