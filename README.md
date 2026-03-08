@@ -75,3 +75,66 @@ The program generates markdown with bootstrap columns:
 Images are automatically ordered:
 - Odd images (1,3,5) → Column 1
 - Even images (2,4,6) → Column 2
+
+---
+
+## Build EXE (Optional)
+
+### Install PyInstaller
+
+```bash
+pip install pyinstaller
+```
+
+### Create EXE
+
+```bash
+pyinstaller --onefile line_report.py
+```
+
+The EXE will be in the `dist/` folder.
+
+---
+
+## Batch File (Optional)
+
+Create a `.bat` file to run the program with interactive input:
+
+```batch
+@echo off
+echo ========================================
+echo LINE Report Generator
+echo ========================================
+echo.
+echo Enter report name:
+set /p name=
+echo Enter folder (or . for current folder):
+set /p folder=
+echo Sort by (d = date, n = name):
+set /p sort=
+echo.
+echo Running...
+line_report.exe %name% %folder% %sort%
+echo.
+pause
+```
+
+### Usage
+
+1. Place `line_report.exe` and the batch file in the same folder
+2. Double-click the batch file
+3. Enter report name, folder path, and sort option
+4. Press Enter to run
+
+---
+
+## Supported LINE Languages
+
+| Language | PHOTO_MARKER |
+|----------|--------------|
+| English  | `[Photo]` or `Photos` |
+| Thai     | `รูป` |
+| Japanese | `写真` |
+| Chinese  | `照片` |
+
+Change `PHOTO_MARKER` in `line_report.py` to match your LINE app language.
