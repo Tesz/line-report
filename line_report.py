@@ -77,19 +77,24 @@ def extract_entries(chat_content):
     """Parse LINE chat log and extract entries with messages and photo counts."""
     entries = []
     
-    # Split by timestamp pattern: HH:MM Name "Message"
-    # LINE format: HH:MM Name Message or HH:MM Name [Photo]
-    
     lines = chat_content.split('\n')
     current_message = ""
     photo_count = 0
+    last_timestamp = None
     
     for line in lines:
+        line_stripped = line.strip()
+        if not line_stripped:
+            continue
+            
         # Check if this line starts with a timestamp (entry start)
-        timestamp_match = re.match(r'^(\d{2}:\d{2})\s+(.+?)\s+"(.+)"', line)
-        photo_match = re.match(r'^(\d{2}:\d{2})\s+(.+?)\s+\[Photo\]', line)
+        # Format: HH:MM Name Message or HH:MM Name [Photo]
+        # Can be with or without quotes around message
+        timestamp_match = re.match(r'^(\d{2}:\d{2})\s+(.+?)\s+"(.+)"', line_stripped)
+        timestamp_no_quote_match = re.match(r'^(\d{2}:\d{2})\s+(.+?)\s+(.+)$', line_stripped)
+        photo_only_match = re.match(r'^(\d{2}:\d{2})\s+(.+?)\s+\[Photo\]$', line_stripped)
         
-        if timestamp_match or photo_match:
+        if timestamp_match:
             # Save previous entry if exists
             if current_message or photo_count > 0:
                 entries.append({
@@ -97,18 +102,63 @@ def extract_entries(chat_content):
                     'photo_count': photo_count
                 })
             
-            # Start new entry
-            if timestamp_match:
-                current_message = timestamp_match.group(3)
-                photo_count = 0
+            # Start new entry with quoted message
+            current_message = timestamp_match.group(3)
+            photo_count = 0
+            last_timestamp = timestamp_match.group(1)
+            
+        elif timestamp_no_quote_match:
+            # Check if it's [Photo]
+            if timestamp_no_quote_match.group(3).strip() == '[Photo]':
+                ts = timestamp_no_quote_match.group(1)
+                
+                # Save previous entry if exists AND timestamp changed
+                if (current_message or photo_count > 0) and ts != last_timestamp:
+                    entries.append({
+                        'message': current_message.strip(),
+                        'photo_count': photo_count
+                    })
+                    current_message = ""
+                    photo_count = 0
+                
+                photo_count += 1
+                last_timestamp = ts
             else:
+                # Save previous entry if exists
+                if current_message or photo_count > 0:
+                    entries.append({
+                        'message': current_message.strip(),
+                        'photo_count': photo_count
+                    })
+                
+                # Start new entry without quotes
+                current_message = timestamp_no_quote_match.group(3)
+                photo_count = 0
+                last_timestamp = timestamp_no_quote_match.group(1)
+                
+        elif photo_only_match:
+            ts = photo_only_match.group(1)
+            
+            # Save previous entry if exists AND timestamp changed
+            if (current_message or photo_count > 0) and ts != last_timestamp:
+                entries.append({
+                    'message': current_message.strip(),
+                    'photo_count': photo_count
+                })
                 current_message = ""
-                photo_count = 1
-        elif line.strip() == '[Photo]':
+                photo_count = 0
+            
+            photo_count += 1
+            last_timestamp = ts
+            
+        elif line_stripped == '[Photo]':
+            # [Photo] on separate line - add to current entry's photo count
             photo_count += 1
         elif current_message:
-            # Continuation of message
-            current_message += "\n" + line.strip() + " "
+            # Continuation of message (multi-line)
+            if current_message and not current_message.endswith('\n'):
+                current_message += '\n'
+            current_message += line_stripped
     
     # Add last entry
     if current_message or photo_count > 0:
@@ -120,31 +170,29 @@ def extract_entries(chat_content):
     return entries
 
 
-def interleave_images(images):
-    """Reorder images: odd first, then even."""
-    if len(images) <= 2:
+def interleave_entry_images(images):
+    """Reorder images for a single entry: odd first, then even."""
+    if len(images) <= 1:
         return images
     
-    # Separate odd and even indexed images (0-based)
     odd_images = []
     even_images = []
     
     for i, img in enumerate(images):
-        if i % 2 == 0:  # 0, 2, 4 -> odd positions (1st, 3rd, 5th in human)
+        if i % 2 == 0:  # 0, 2, 4 -> odd positions (1st, 3rd, 5th)
             odd_images.append(img)
-        else:  # 1, 3, 5 -> even positions (2nd, 4th, 6th in human)
+        else:  # 1, 3, 5 -> even positions (2nd, 4th, 6th)
             even_images.append(img)
     
-    # Interleave: odd first, then even
-    result = odd_images + even_images
-    return result
+    # Odd then even
+    return odd_images + even_images
 
 
 def generate_report(entries, image_files, report_name, output_path):
     """Generate markdown report."""
     
-    # Interleave images
-    ordered_images = interleave_images([img[1] for img in image_files])
+    # Get image names in order (already sorted by name or date)
+    ordered_images = [img[1] for img in image_files]
     
     # Track image index
     img_idx = 0
@@ -159,8 +207,6 @@ def generate_report(entries, image_files, report_name, output_path):
         photo_count = entry['photo_count']
         
         if photo_count > 0:
-            md_content += "````col\n"
-            
             # Get images for this entry
             entry_images = []
             for _ in range(photo_count):
@@ -170,10 +216,16 @@ def generate_report(entries, image_files, report_name, output_path):
                 else:
                     entry_images.append("[ไม่พบรูป]")
             
-            # Split into odd and even
+            # Interleave within this entry
+            entry_images = interleave_entry_images(entry_images)
+            
+            # Split into odd and even columns
             half = (len(entry_images) + 1) // 2
             odd_imgs = entry_images[:half]
             even_imgs = entry_images[half:]
+            
+            # Build markdown with proper col blocks
+            md_content += "````col\n"
             
             # Column 1: odd images
             md_content += "```col-md\n"
