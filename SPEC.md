@@ -31,6 +31,39 @@ The system searches for chatlog file in this order:
 3. If exactly one `.txt` file is found, use it for processing
 4. If no `.txt` files are found, **stop execution with error**
 
+### 3.3 Chatlog Format
+The chatlog exported from LINE Keep has this format:
+
+```text
+2026.03.08 วันอาทิตย์
+10:56 Trin・ティン Pro. ยกแป้นพินมาผิดทำให้รถเลี้ยวผิด
+ทางออก booth wax
+ทำการถอยรถ และ manual สับราง
+Reset หน้าตู้และ run c/v ok.
+เวลา 21.40-21.42 = 2 นาที
+10:56 Trin・ティン [Photo]
+10:56 Trin・ティン [Photo]
+14:21 Trin・ティン สภาพจาระบี Roller PP205
+- Roller DFK มาร์คเขียว( 2 อาทิตย์) จาระบี molykote สภาพเริ่มเข้าไปในลูกปืน สภาพยังดีสีเริ่มเทาเข้ม
+
+- Roller DFK มาร์คชมพู(1 อาทิตย์) จาระบี molykote สภาพยังดี ขาวเหลือง
+
+- Roller Overhaul (1 อาทิตย์)
+จาระบี Lumax สภาพเปลี่ยนจากสีขาวเป็นดำ แต่ยังไม่แห้งครับ
+
+ต่อไปจะขอถอดเช็คจาระบีใน Roller ทุกๆ 1 เดือนก่อน เพื่อประเมินความเสี่ยงครับ
+14:21 Trin・ティン [Photo]
+14:21 Trin・ティン [Photo]
+14:21 Trin・ティン [Photo]
+14:21 Trin・ティン [Photo]
+```
+
+**Key patterns:**
+- Date line: `YYYY.MM.DD วัน[วัน]`
+- Timestamp: `HH:MM Name [Photo]` or `HH:MM Name Message...`
+- Multi-line message: continues until next timestamp
+- `[Photo]` marker indicates image
+
 ### 3.3 Report Generation
 - Output file: `{Report Name}.md` (e.g., `20260308.md`)
 - Location: Same folder as input folder
