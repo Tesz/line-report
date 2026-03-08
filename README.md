@@ -11,8 +11,11 @@ Python program to generate markdown report from LINE chat export files and image
 Edit `PHOTO_MARKER` in `line_report.py` to match your LINE language:
 
 ```python
-PHOTO_MARKER = "[Photo]"  # English
-# PHOTO_MARKER = "รูป"    # Thai
+# Change this to match your LINE language
+# Thai: รูป
+# English: [photo] or Photos
+PHOTO_MARKER = "Photos"
+JOB_TITLE = "งานที่"
 ```
 
 ## Usage
