@@ -20,11 +20,17 @@ This is a Python program that generates a markdown report (`.md`) from LINE chat
 
 ## 3. Functionality
 
-### 3.1 Image Sorting
-- **`d` (date):** Sort images by creation date, ascending (oldest → newest)
-- **`n` (name):** Sort images by filename (IMG_001 → IMG_999), ascending
+### 3.1 Image & Video Sorting
+- **`d` (date):** Sort files by creation date, ascending (oldest → newest)
+- **`n` (name):** Sort files by filename (IMG_001 → IMG_999), ascending
 
-### 3.2 Chatlog File Detection
+### 3.2 Media File Detection
+The program supports both **images** and **videos**:
+
+**Image formats:** `.jpg`, `.jpeg`, `.png`, `.gif`
+**Video formats:** `.mp4`, `.mov`, `.avi`
+
+### 3.3 Chatlog File Detection
 The system searches for chatlog file in this order:
 1. Look for `[LINE]Keep Memo.txt`
 2. If not found, search for `*.txt` (any `.txt` file)
@@ -62,13 +68,28 @@ Reset หน้าตู้และ run c/v ok.
 - Date line: `YYYY.MM.DD วัน[วัน]`
 - Timestamp: `HH:MM Name [Photo]` or `HH:MM Name Message...`
 - Multi-line message: continues until next timestamp
-- `[Photo]` marker indicates image
+- Media markers: `[Photo]`, `Photos`, `รูป`, `写真`, `照片`, `วิดีโอ`, `Video`
 
-### 3.3 Report Generation
+### 3.4 Media Marker Configuration
+The program supports multiple language markers as an **array**:
+
+```python
+MEDIA_MARKERS = [
+    "รูป",        # Thai
+    "[Photo]",    # English
+    "Photos",     # English
+    "写真",       # Japanese
+    "照片",       # Chinese
+    "วิดีโอ",     # Thai video
+    "Video",      # English video
+]
+```
+
+### 3.5 Report Generation
 - Output file: `{Report Name}.md` (e.g., `20260308.md`)
 - Location: Same folder as input folder
 
-### 3.4 Report Structure
+### 3.6 Report Structure
 
 ```markdown
 # 20260308
@@ -99,7 +120,7 @@ Reset หน้าตู้และ run c/v ok.
 ```
 ````
 
-### 3.5 Image Ordering for Multiple Photos
+### 3.7 Media Ordering for Multiple Files
 When an entry has multiple images, the images are **interleaved** (สลับเรียง):
 
 ```
