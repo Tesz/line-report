@@ -67,7 +67,14 @@ Reset หน้าตู้และ run c/v ok.
 - Multi-line message: continues until next timestamp
 - Media markers: `[Photo]`, `Photos`, `รูป`, `写真`, `照片`, `วิดีโอ`, `Video`
 
-### 3.4 Media Marker Configuration
+### 3.4 Entry Grouping (Important!)
+Entries are grouped by **content continuity**, NOT by timestamp.
+
+- If the next message has **NO message text** (only media), it will be grouped with the **previous entry**
+- This allows multiple media-only messages (same job, different timestamps) to be grouped together
+- Example: Job description at 14:21, followed by 4 photos at 14:21, 16:42, 16:43, 16:44 → All grouped as 1 entry
+
+### 3.5 Media Marker Configuration
 The program supports multiple language markers as an **array**:
 
 ```python
@@ -82,11 +89,11 @@ MEDIA_MARKERS = [
 ]
 ```
 
-### 3.5 Report Generation
+### 3.6 Report Generation
 - Output file: `{Report Name}.md` (e.g., `20260308.md`)
 - Location: Same folder as input folder
 
-### 3.6 Report Structure
+### 3.7 Report Structure
 
 ``````markdown
 # 20260308
@@ -118,7 +125,7 @@ MEDIA_MARKERS = [
 ````
 ``````
 
-### 3.7 Media Ordering for Multiple Files
+### 3.8 Media Ordering for Multiple Files
 When an entry has multiple images, the images are **interleaved** (สลับเรียง):
 
 ```
