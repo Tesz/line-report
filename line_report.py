@@ -19,7 +19,7 @@ MEDIA_MARKERS = [
     "写真",       # Japanese
     "照片",       # Chinese
     "วิดีโอ",     # Thai video
-    "Video",      # English video
+    "Videos",      # English video
 ]
 
 # Supported media extensions
