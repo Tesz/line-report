@@ -107,13 +107,16 @@ def get_media_by_date(folder):
 
 
 def extract_entries(chat_content):
-    """Parse LINE chat log and extract entries with messages and photo counts."""
+    """Parse LINE chat log and extract entries with messages and media counts.
+    
+    Entries are grouped by content continuity:
+    - If next message has NO text (only media), it will be grouped with previous entry
+    """
     entries = []
     
     lines = chat_content.split('\n')
     current_message = ""
     media_count = 0
-    last_timestamp = None
     
     for line in lines:
         line_stripped = line.strip()
@@ -122,10 +125,8 @@ def extract_entries(chat_content):
             
         # Check if this line starts with a timestamp (entry start)
         # Format: HH:MM Name Message or HH:MM Name รูป
-        # Can be with or without quotes around message
         timestamp_match = re.match(r'^(\d{2}:\d{2})\s+(.+?)\s+"(.+)"', line_stripped)
         timestamp_no_quote_match = re.match(r'^(\d{2}:\d{2})\s+(.+?)\s+(.+)$', line_stripped)
-        photo_only_match = re.match(r'^(\d{2}:\d{2})\s+(.+?)\s+(.+)$', line_stripped)
         
         if timestamp_match:
             # Save previous entry if exists
@@ -138,26 +139,14 @@ def extract_entries(chat_content):
             # Start new entry with quoted message
             current_message = timestamp_match.group(3)
             media_count = 0
-            last_timestamp = timestamp_match.group(1)
             
         elif timestamp_no_quote_match:
             # Check if it's a media marker (photo/video)
             if timestamp_no_quote_match.group(3).strip() in MEDIA_MARKERS:
-                ts = timestamp_no_quote_match.group(1)
-                
-                # Save previous entry if exists AND timestamp changed
-                if (current_message or media_count > 0) and ts != last_timestamp:
-                    entries.append({
-                        'message': current_message.strip(),
-                        'media_count': media_count
-                    })
-                    current_message = ""
-                    media_count = 0
-                
+                # Media-only message: ADD to current entry (don't create new entry)
                 media_count += 1
-                last_timestamp = ts
             else:
-                # Save previous entry if exists
+                # New message with text: save previous and start new
                 if current_message or media_count > 0:
                     entries.append({
                         'message': current_message.strip(),
@@ -167,26 +156,11 @@ def extract_entries(chat_content):
                 # Start new entry without quotes
                 current_message = timestamp_no_quote_match.group(3)
                 media_count = 0
-                last_timestamp = timestamp_no_quote_match.group(1)
                 
-        elif photo_only_match:
-            ts = photo_only_match.group(1)
-            
-            # Save previous entry if exists AND timestamp changed
-            if (current_message or media_count > 0) and ts != last_timestamp:
-                entries.append({
-                    'message': current_message.strip(),
-                    'media_count': media_count
-                })
-                current_message = ""
-                media_count = 0
-            
-            media_count += 1
-            last_timestamp = ts
-            
         elif line_stripped in MEDIA_MARKERS:
-            # Media marker on separate line - add to current entry's media count
+            # Media marker on separate line: ADD to current entry
             media_count += 1
+            
         elif current_message:
             # Continuation of message (multi-line)
             if current_message and not current_message.endswith('\n'):
