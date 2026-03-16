@@ -151,8 +151,9 @@ The program supports two output formats:
 When `xlsx` is selected, the output will be `{Report Name}.xlsx` instead of `.md`.
 
 ### 3.10 Excel Output Structure (xlsx)
-When output format is `xlsx`, the Excel file contains:
+When output format is `xlsx`, the Excel file contains **2 sheets**:
 
+#### Sheet 1: "Cover"
 | Column | Description |
 |--------|-------------|
 | A: Entry No. | Sequential entry number (1, 2, 3...) |
@@ -164,11 +165,41 @@ When output format is `xlsx`, the Excel file contains:
 | G: Image Filenames | Comma-separated list of image filenames (e.g., "IMG_001.jpg, IMG_002.jpg") |
 | H: Image Path | Relative path to images folder (e.g., "./images/") |
 
-**Excel Features:**
+**Cover Sheet Features:**
 - Header row with bold formatting
 - Auto-adjust column width
 - Text wrapping enabled for long content
-- Images are **not embedded** in Excel (only filenames listed for reference)
+- Images are **not embedded** (only filenames listed)
+
+#### Sheet 2: "Detail"
+The Detail sheet contains the full report with images embedded:
+
+**Structure per entry:**
+```
+[Entry No.] - [Date] [Time] - [Sender]
+[Text Content]
+
+[[Image 1]]
+[[Image 2]]
+[[Image 3]]
+... (all images for this entry, stacked vertically)
+
+[Spacing row for next entry]
+[Entry No.2] - [Date] [Time] - [Sender]
+...
+```
+
+**Detail Sheet Features:**
+- **Image embedding:** All images are actually inserted into Excel cells
+- **Image sizing:** 
+  - Maximum width: 10cm
+  - Height: Auto-adjusted based on original aspect ratio
+  - Images stacked vertically within each entry
+- **Spacing:** Empty rows between entries for separation
+- **Text formatting:**
+  - Entry header: Bold, font size 12
+  - Text content: Normal, font size 10, text wrapping enabled
+- **Flow:** Continue from entry 1 to entry N sequentially
 
 ---
 
