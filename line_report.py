@@ -30,9 +30,8 @@ IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif']
 # Note: .mpo, .bmp, .tiff, .tif, .webp are excluded as openpyxl doesn't support them
 VIDEO_EXTENSIONS = ['.mp4', '.mov', '.avi']
 
-# Unsupported extensions (will be skipped in Excel output)
-# Note: include both lowercase and uppercase as some systems use uppercase
-UNSUPPORTED_IMAGE_EXTENSIONS = ['.mpo', '.bmp', '.tiff', '.tif', '.webp', '.MPO', '.BMP', '.TIFF', '.TIF', '.WEBP']
+# Skip these extensions entirely (not just for Excel)
+UNSUPPORTED_IMAGE_EXTENSIONS = ['.mpo', '.bmp', '.tiff', '.tif', '.webp']
 
 # Job title prefix
 JOB_TITLE = "งานที่"
@@ -46,11 +45,17 @@ from pathlib import Path
 # For Excel output
 try:
     import mimetypes
-    # Register unsupported mime types for openpyxl
-    mimetypes.add_type('image/jpeg', '.mpo')
-    mimetypes.add_type('image/bmp', '.bmp')
-    mimetypes.add_type('image/tiff', '.tiff')
-    mimetypes.add_type('image/webp', '.webp')
+    # Patch mimetypes for unsupported extensions (lowercase + uppercase)
+    mimetypes.types_map[True]['.mpo'] = 'image/jpeg'
+    mimetypes.types_map[True]['.MPO'] = 'image/jpeg'
+    mimetypes.types_map[True]['.bmp'] = 'image/bmp'
+    mimetypes.types_map[True]['.BMP'] = 'image/bmp'
+    mimetypes.types_map[True]['.tiff'] = 'image/tiff'
+    mimetypes.types_map[True]['.TIFF'] = 'image/tiff'
+    mimetypes.types_map[True]['.tif'] = 'image/tiff'
+    mimetypes.types_map[True]['.TIF'] = 'image/tiff'
+    mimetypes.types_map[True]['.webp'] = 'image/webp'
+    mimetypes.types_map[True]['.WEBP'] = 'image/webp'
     
     from openpyxl import Workbook
     from openpyxl.styles import Font, Alignment, PatternFill
