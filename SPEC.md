@@ -222,9 +222,10 @@ The Detail sheet contains the full report with images embedded:
   - Other file access errors
 
 ### 4.4 Excel Output Dependencies
-- When output format is `xlsx`, requires `openpyxl` library
-- Install via: `pip install openpyxl`
-- If `openpyxl` is not installed and `xlsx` format is selected, display error message
+- When output format is `xlsx`, requires `xlsxwriter` library
+- Install via: `pip install xlsxwriter`
+- If `xlsxwriter` is not installed and `xlsx` format is selected, display error message
+- Note: xlsxwriter is more stable than openpyxl and has better support for various image formats
 
 ---
 

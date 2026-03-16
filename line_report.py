@@ -44,30 +44,13 @@ from pathlib import Path
 
 # For Excel output
 try:
-    import mimetypes
-    # Add custom MIME types safely
-    mimetypes.add_type('image/jpeg', '.mpo')
-    mimetypes.add_type('image/jpeg', '.MPO')
-    mimetypes.add_type('image/bmp', '.bmp')
-    mimetypes.add_type('image/bmp', '.BMP')
-    mimetypes.add_type('image/tiff', '.tiff')
-    mimetypes.add_type('image/tiff', '.TIFF')
-    mimetypes.add_type('image/tiff', '.tif')
-    mimetypes.add_type('image/tiff', '.TIF')
-    mimetypes.add_type('image/webp', '.webp')
-    mimetypes.add_type('image/webp', '.WEBP')
-    
-    from openpyxl import Workbook
-    from openpyxl.styles import Font, Alignment, PatternFill
-    from openpyxl.drawing.image import Image as XLImage
-    OPENPYXL_AVAILABLE = True
+    import xlsxwriter
+    XLSXWRITER_AVAILABLE = True
 except ImportError:
-    OPENPYXL_AVAILABLE = False
+    XLSXWRITER_AVAILABLE = False
 
 # Image sizing for Excel (10cm max width)
-# Excel uses points as units: 1cm ≈ 28.35 points
 MAX_IMAGE_WIDTH_CM = 10
-MAX_IMAGE_WIDTH_PT = MAX_IMAGE_WIDTH_CM * 28.35  # ~283.5 points
 
 
 def find_chatlog(folder):
@@ -327,10 +310,10 @@ def generate_markdown(entries, image_files, report_name, output_path):
 
 
 def generate_excel(entries, image_files, report_name, output_path, folder):
-    """Generate Excel report with Cover and Detail sheets."""
+    """Generate Excel report with Cover and Detail sheets using xlsxwriter."""
     
-    if not OPENPYXL_AVAILABLE:
-        print("Error: openpyxl is not installed. Please install with: pip install openpyxl")
+    if not XLSXWRITER_AVAILABLE:
+        print("Error: xlsxwriter is not installed. Please install with: pip install xlsxwriter")
         sys.exit(1)
     
     # Get image files sorted (name or date)
@@ -343,23 +326,41 @@ def generate_excel(entries, image_files, report_name, output_path, folder):
     folder_path = Path(folder)
     
     # Create workbook
-    wb = Workbook()
+    wb = xlsxwriter.Workbook(output_path)
     
     # ============================================
     # Sheet 1: "Cover" - Data table
     # ============================================
-    ws_cover = wb.active
-    ws_cover.title = "Cover"
+    ws_cover = wb.add_worksheet("Cover")
+    
+    # Formats
+    header_format = wb.add_format({
+        'bold': True,
+        'text_wrap': True,
+        'valign': 'top'
+    })
+    cell_format = wb.add_format({
+        'text_wrap': True,
+        'valign': 'top'
+    })
     
     # Header row
     headers = ["No.", "Date", "Time", "Sender", "Text Content", "Image Count", "Image Filenames", "Image Path"]
-    for col, header in enumerate(headers, 1):
-        cell = ws_cover.cell(row=1, column=col, value=header)
-        cell.font = Font(bold=True)
-        cell.alignment = Alignment(wrap_text=True)
+    for col, header in enumerate(headers):
+        ws_cover.write(0, col, header, header_format)
+    
+    # Set column widths
+    ws_cover.set_column(0, 0, 5)   # No.
+    ws_cover.set_column(1, 1, 12)  # Date
+    ws_cover.set_column(2, 2, 8)   # Time
+    ws_cover.set_column(3, 3, 20)  # Sender
+    ws_cover.set_column(4, 4, 40)  # Text Content
+    ws_cover.set_column(5, 5, 10) # Image Count
+    ws_cover.set_column(6, 6, 30)  # Image Filenames
+    ws_cover.set_column(7, 7, 20)  # Image Path
     
     # Add data rows
-    for row, entry in enumerate(entries, 2):
+    for row_idx, entry in enumerate(entries, 1):
         # Get images for this entry
         entry_images = []
         for _ in range(entry['media_count']):
@@ -368,40 +369,43 @@ def generate_excel(entries, image_files, report_name, output_path, folder):
                 img_idx += 1
         
         # Write row data
-        ws_cover.cell(row=row, column=1, value=row-1)  # No.
-        ws_cover.cell(row=row, column=2, value=entry.get('date', ''))  # Date
-        ws_cover.cell(row=row, column=3, value=entry.get('time', ''))  # Time
-        ws_cover.cell(row=row, column=4, value=entry.get('sender', ''))  # Sender
-        ws_cover.cell(row=row, column=5, value=entry.get('message', ''))  # Text Content
-        ws_cover.cell(row=row, column=6, value=entry['media_count'])  # Image Count
-        ws_cover.cell(row=row, column=7, value=", ".join(entry_images) if entry_images else "")  # Image Filenames
-        ws_cover.cell(row=row, column=8, value=f"{folder}/")  # Image Path
-        
-        # Enable text wrapping
-        for col in range(1, 9):
-            ws_cover.cell(row=row, column=col).alignment = Alignment(wrap_text=True)
-    
-    # Auto-adjust column width for Cover sheet
-    for col in range(1, 9):
-        max_length = 0
-        column_letter = ws_cover.cell(row=1, column=col).column_letter
-        for cell in ws_cover[column_letter]:
-            try:
-                if len(str(cell.value)) > max_length:
-                    max_length = len(str(cell.value))
-            except:
-                pass
-        adjusted_width = min(max_length + 2, 50)
-        ws_cover.column_dimensions[column_letter].width = adjusted_width
+        ws_cover.write(row_idx, 0, row_idx, cell_format)  # No.
+        ws_cover.write(row_idx, 1, entry.get('date', ''), cell_format)
+        ws_cover.write(row_idx, 2, entry.get('time', ''), cell_format)
+        ws_cover.write(row_idx, 3, entry.get('sender', ''), cell_format)
+        ws_cover.write(row_idx, 4, entry.get('message', ''), cell_format)
+        ws_cover.write(row_idx, 5, entry['media_count'], cell_format)
+        ws_cover.write(row_idx, 6, ", ".join(entry_images) if entry_images else "", cell_format)
+        ws_cover.write(row_idx, 7, f"{folder}/", cell_format)
     
     # ============================================
     # Sheet 2: "Detail" - Text + embedded images
     # ============================================
-    ws_detail = wb.create_sheet(title="Detail")
+    ws_detail = wb.add_worksheet("Detail")
+    
+    # Formats for Detail sheet
+    header_format_detail = wb.add_format({
+        'bold': True,
+        'font_size': 12
+    })
+    text_format_detail = wb.add_format({
+        'font_size': 10,
+        'text_wrap': True,
+        'valign': 'top'
+    })
+    placeholder_format = wb.add_format({
+        'font_size': 9,
+        'italic': True,
+        'font_color': '#808080'
+    })
+    
+    # Set column widths
+    ws_detail.set_column(0, 0, 60)  # A column wider
+    ws_detail.set_column(1, 1, 40)
     
     # Reset image index for Detail sheet
     img_idx = 0
-    current_row = 1
+    current_row = 0
     
     for entry_idx, entry in enumerate(entries, 1):
         # Get images for this entry
@@ -420,36 +424,41 @@ def generate_excel(entries, image_files, report_name, output_path, folder):
         if entry.get('sender'):
             header_text += f" - {entry['sender']}"
         
-        cell_header = ws_detail.cell(row=current_row, column=1, value=header_text)
-        cell_header.font = Font(bold=True, size=12)
+        ws_detail.write(current_row, 0, header_text, header_format_detail)
         current_row += 1
         
         # === Text Content ===
         if entry.get('message'):
-            cell_text = ws_detail.cell(row=current_row, column=1, value=entry['message'])
-            cell_text.font = Font(size=10)
-            cell_text.alignment = Alignment(wrap_text=True, vertical='top')
-            ws_detail.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=2)
+            ws_detail.write(current_row, 0, entry['message'], text_format_detail)
+            ws_detail.set_row(current_row, 60)  # Set row height for text
             current_row += 1
         
-        # === Images (placeholder only - embedding has compatibility issues with openpyxl) ===
-        if entry_images:
-            # Show list of image filenames as placeholder
-            img_list = ", ".join(entry_images)
-            cell = ws_detail.cell(row=current_row, column=1, value=f"[รูป: {img_list}]")
-            cell.font = Font(size=9, italic=True, color="808080")
-            ws_detail.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=2)
-            current_row += 1
+        # === Images (embedded with xlsxwriter) ===
+        for img_name in entry_images:
+            img_path = folder_path / img_name
+            if img_path.exists():
+                try:
+                    # Insert image with scaling (max width 10cm)
+                    ws_detail.insert_image(
+                        current_row, 0,
+                        str(img_path),
+                        {'x_scale': 1, 'y_scale': 1, 'x_offset': 0, 'y_offset': 0}
+                    )
+                    current_row += 1
+                except Exception as e:
+                    # If image fails, show placeholder
+                    ws_detail.write(current_row, 0, f"[โหลดรูปไม่ได้: {img_name}]", placeholder_format)
+                    current_row += 1
+            else:
+                # Image not found
+                ws_detail.write(current_row, 0, f"[ไม่พบรูป: {img_name}]", placeholder_format)
+                current_row += 1
         
         # === Spacing row between entries ===
         current_row += 1
     
-    # Set column width for Detail sheet
-    ws_detail.column_dimensions['A'].width = 60
-    ws_detail.column_dimensions['B'].width = 40
-    
-    # Save file
-    wb.save(output_path)
+    # Close workbook
+    wb.close()
     
     print(f"✓ Excel report generated: {output_path}")
     print(f"  - Entries: {len(entries)}")
@@ -483,8 +492,8 @@ def main():
         sys.exit(1)
     
     # Check xlsx dependency
-    if output_format == 'xlsx' and not OPENPYXL_AVAILABLE:
-        print("Error: openpyxl is not installed. Please install with: pip install openpyxl")
+    if output_format == 'xlsx' and not XLSXWRITER_AVAILABLE:
+        print("Error: xlsxwriter is not installed. Please install with: pip install xlsxwriter")
         sys.exit(1)
     
     # Find chatlog
