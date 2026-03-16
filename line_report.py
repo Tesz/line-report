@@ -2,12 +2,15 @@
 # -*- coding: utf-8 -*-
 """
 LINE Report Generator
-Generate markdown report from LINE chat export files and images.
+Generate report (markdown or excel) from LINE chat export files and images.
 
-Usage: python line_report.py <Report Name> <Folder> <Sort>
+Usage: python line_report.py <Report Name> <Folder> <Sort> [Format]
   Sort: d (date) or n (name)
+  Format: md (markdown) or xlsx (excel), default: md
 
-Example: python line_report.py 20260308 ./20260308 d
+Example: 
+  python line_report.py 20260308 ./20260308 d        # output markdown
+  python line_report.py 20260308 ./20260308 d xlsx   # output excel
 """
 
 # === CONFIGURATION ===
@@ -34,6 +37,14 @@ import os
 import sys
 import re
 from pathlib import Path
+
+# For Excel output
+try:
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, Alignment, PatternFill
+    OPENPYXL_AVAILABLE = True
+except ImportError:
+    OPENPYXL_AVAILABLE = False
 
 
 def find_chatlog(folder):
@@ -111,10 +122,15 @@ def extract_entries(chat_content):
     
     Entries are grouped by content continuity:
     - If next message has NO text (only media), it will be grouped with previous entry
+    
+    Returns list of dict with keys: date, time, sender, message, media_count
     """
     entries = []
     
     lines = chat_content.split('\n')
+    current_date = ""
+    current_time = ""
+    current_sender = ""
     current_message = ""
     media_count = 0
     
@@ -122,7 +138,13 @@ def extract_entries(chat_content):
         line_stripped = line.strip()
         if not line_stripped:
             continue
-            
+        
+        # Check for date line: YYYY.MM.DD วัน[วัน]
+        date_match = re.match(r'^(\d{4}\.\d{2}\.\d{2})\s+วัน', line_stripped)
+        if date_match:
+            current_date = date_match.group(1)
+            continue
+        
         # Check if this line starts with a timestamp (entry start)
         # Format: HH:MM Name Message or HH:MM Name รูป
         timestamp_match = re.match(r'^(\d{2}:\d{2})\s+(.+?)\s+"(.+)"', line_stripped)
@@ -132,11 +154,16 @@ def extract_entries(chat_content):
             # Save previous entry if exists
             if current_message or media_count > 0:
                 entries.append({
+                    'date': current_date,
+                    'time': current_time,
+                    'sender': current_sender,
                     'message': current_message.strip(),
                     'media_count': media_count
                 })
             
             # Start new entry with quoted message
+            current_time = timestamp_match.group(1)
+            current_sender = timestamp_match.group(2)
             current_message = timestamp_match.group(3)
             media_count = 0
             
@@ -144,16 +171,24 @@ def extract_entries(chat_content):
             # Check if it's a media marker (photo/video)
             if timestamp_no_quote_match.group(3).strip() in MEDIA_MARKERS:
                 # Media-only message: ADD to current entry (don't create new entry)
+                if not current_time:  # First media has no time yet
+                    current_time = timestamp_no_quote_match.group(1)
+                    current_sender = timestamp_no_quote_match.group(2)
                 media_count += 1
             else:
                 # New message with text: save previous and start new
                 if current_message or media_count > 0:
                     entries.append({
+                        'date': current_date,
+                        'time': current_time,
+                        'sender': current_sender,
                         'message': current_message.strip(),
                         'media_count': media_count
                     })
                 
                 # Start new entry without quotes
+                current_time = timestamp_no_quote_match.group(1)
+                current_sender = timestamp_no_quote_match.group(2)
                 current_message = timestamp_no_quote_match.group(3)
                 media_count = 0
                 
@@ -170,6 +205,9 @@ def extract_entries(chat_content):
     # Add last entry
     if current_message or media_count > 0:
         entries.append({
+            'date': current_date,
+            'time': current_time,
+            'sender': current_sender,
             'message': current_message.strip(),
             'media_count': media_count
         })
@@ -195,7 +233,7 @@ def interleave_entry_images(images):
     return odd_images + even_images
 
 
-def generate_report(entries, image_files, report_name, output_path):
+def generate_markdown(entries, image_files, report_name, output_path):
     """Generate markdown report."""
     
     # Get image names in order (already sorted by name or date)
@@ -259,20 +297,103 @@ def generate_report(entries, image_files, report_name, output_path):
     print(f"  - Images used: {img_idx}")
 
 
+def generate_excel(entries, image_files, report_name, output_path, folder):
+    """Generate Excel report."""
+    
+    if not OPENPYXL_AVAILABLE:
+        print("Error: openpyxl is not installed. Please install with: pip install openpyxl")
+        sys.exit(1)
+    
+    # Get image names in order
+    ordered_images = [img[1] for img in image_files]
+    
+    # Track image index
+    img_idx = 0
+    
+    # Create workbook
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Report"
+    
+    # Header row
+    headers = ["No.", "Date", "Time", "Sender", "Text Content", "Image Count", "Image Filenames", "Image Path"]
+    for col, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col, value=header)
+        cell.font = Font(bold=True)
+        cell.alignment = Alignment(wrap_text=True)
+    
+    # Add data rows
+    for row, entry in enumerate(entries, 2):
+        # Get images for this entry
+        entry_images = []
+        for _ in range(entry['media_count']):
+            if img_idx < len(ordered_images):
+                entry_images.append(ordered_images[img_idx])
+                img_idx += 1
+        
+        # Write row data
+        ws.cell(row=row, column=1, value=row-1)  # No.
+        ws.cell(row=row, column=2, value=entry.get('date', ''))  # Date
+        ws.cell(row=row, column=3, value=entry.get('time', ''))  # Time
+        ws.cell(row=row, column=4, value=entry.get('sender', ''))  # Sender
+        ws.cell(row=row, column=5, value=entry.get('message', ''))  # Text Content
+        ws.cell(row=row, column=6, value=entry['media_count'])  # Image Count
+        ws.cell(row=row, column=7, value=", ".join(entry_images) if entry_images else "")  # Image Filenames
+        ws.cell(row=row, column=8, value=f"{folder}/")  # Image Path
+        
+        # Enable text wrapping
+        for col in range(1, 9):
+            ws.cell(row=row, column=col).alignment = Alignment(wrap_text=True)
+    
+    # Auto-adjust column width
+    for col in range(1, 9):
+        max_length = 0
+        column_letter = ws.cell(row=1, column=col).column_letter
+        for cell in ws[column_letter]:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        adjusted_width = min(max_length + 2, 50)  # Cap at 50
+        ws.column_dimensions[column_letter].width = adjusted_width
+    
+    # Save file
+    wb.save(output_path)
+    
+    print(f"✓ Excel report generated: {output_path}")
+    print(f"  - Entries: {len(entries)}")
+    print(f"  - Images used: {img_idx}")
+
+
 def main():
-    if len(sys.argv) != 4:
-        print("Usage: python line_report.py <Report Name> <Folder> <Sort>")
+    if len(sys.argv) < 4 or len(sys.argv) > 5:
+        print("Usage: python line_report.py <Report Name> <Folder> <Sort> [Format]")
         print("  Sort: d (date) or n (name)")
-        print("Example: python line_report.py 20260308 ./20260308 d")
+        print("  Format: md (markdown) or xlsx (excel), default: md")
+        print("Example:")
+        print("  python line_report.py 20260308 ./20260308 d        # output markdown")
+        print("  python line_report.py 20260308 ./20260308 d xlsx   # output excel")
         sys.exit(1)
     
     report_name = sys.argv[1]
     folder = sys.argv[2]
     sort_option = sys.argv[3].lower()
+    output_format = sys.argv[4].lower() if len(sys.argv) == 5 else 'md'
     
     # Validate sort option
     if sort_option not in ['d', 'n']:
         print("Error: Sort must be 'd' (date) or 'n' (name)")
+        sys.exit(1)
+    
+    # Validate format option
+    if output_format not in ['md', 'xlsx']:
+        print("Error: Format must be 'md' (markdown) or 'xlsx' (excel)")
+        sys.exit(1)
+    
+    # Check xlsx dependency
+    if output_format == 'xlsx' and not OPENPYXL_AVAILABLE:
+        print("Error: openpyxl is not installed. Please install with: pip install openpyxl")
         sys.exit(1)
     
     # Find chatlog
@@ -296,11 +417,13 @@ def main():
         image_files = get_media_by_name(folder)
         print(f"Found {len(image_files)} images (sorted by name)")
     
-    # Generate output path
-    output_path = Path(folder) / f"{report_name}.md"
-    
-    # Generate report
-    generate_report(entries, image_files, report_name, output_path)
+    # Generate output based on format
+    if output_format == 'xlsx':
+        output_path = Path(folder) / f"{report_name}.xlsx"
+        generate_excel(entries, image_files, report_name, output_path, folder)
+    else:
+        output_path = Path(folder) / f"{report_name}.md"
+        generate_markdown(entries, image_files, report_name, output_path)
 
 
 if __name__ == "__main__":

@@ -2,9 +2,13 @@
 
 ## 1. Project Overview
 
-This is a Python program that generates a markdown report (`.md`) from LINE chat export files and image files. Designed to run on Windows as the primary platform.
+This is a Python program that generates a report from LINE chat export files and image files. Designed to run on Windows as the primary platform.
 
-**Purpose:** Convert LINE Keep/Chat export (chatlog + images) into a structured markdown report.
+**Purpose:** Convert LINE Keep/Chat export (chatlog + images) into a structured report.
+
+**Supported Output Formats:**
+- Markdown (`.md`) - Default
+- Excel (`.xlsx`)
 
 ---
 
@@ -15,6 +19,7 @@ This is a Python program that generates a markdown report (`.md`) from LINE chat
 | Report Name | Output filename (without extension) | `20260308` |
 | Folder | Path to folder containing chatlog and images | `./20260308` or `C:\data\20260308` |
 | Sort Image | Image sorting method: `d` (date) or `n` (name) | `d` or `n` |
+| Output Format | Output file format: `md` (markdown) or `xlsx` (Excel) | `md` or `xlsx` (default: `md`) |
 
 ---
 
@@ -135,6 +140,36 @@ Output order: IMG_001, IMG_003, IMG_005, IMG_002, IMG_004, IMG_006
 
 This creates a zigzag pattern: odd numbers first, then even numbers.
 
+### 3.9 Output Format Selection
+The program supports two output formats:
+
+- **`md` (Markdown):** Default format, generates `.md` file with image links
+- **`xlsx` (Excel):** Generates `.xlsx` file with structured data table
+
+**Default:** If not specified, output format defaults to `md`.
+
+When `xlsx` is selected, the output will be `{Report Name}.xlsx` instead of `.md`.
+
+### 3.10 Excel Output Structure (xlsx)
+When output format is `xlsx`, the Excel file contains:
+
+| Column | Description |
+|--------|-------------|
+| A: Entry No. | Sequential entry number (1, 2, 3...) |
+| B: Date | Date from chatlog (e.g., "2026.03.08 วันอาทิตย์") |
+| C: Time | Timestamp from chatlog (e.g., "10:56") |
+| D: Sender | Person who sent the message (e.g., "Trin・ティン Pro.") |
+| E: Text Content | Message text (all lines combined) |
+| F: Image Count | Number of images in this entry |
+| G: Image Filenames | Comma-separated list of image filenames (e.g., "IMG_001.jpg, IMG_002.jpg") |
+| H: Image Path | Relative path to images folder (e.g., "./images/") |
+
+**Excel Features:**
+- Header row with bold formatting
+- Auto-adjust column width
+- Text wrapping enabled for long content
+- Images are **not embedded** in Excel (only filenames listed for reference)
+
 ---
 
 ## 4. Technical Considerations
@@ -155,21 +190,36 @@ This creates a zigzag pattern: odd numbers first, then even numbers.
   - Image folder not found
   - Other file access errors
 
+### 4.4 Excel Output Dependencies
+- When output format is `xlsx`, requires `openpyxl` library
+- Install via: `pip install openpyxl`
+- If `openpyxl` is not installed and `xlsx` format is selected, display error message
+
 ---
 
 ## 5. Example Usage
 
 ```bash
-# Sort by date (d)
-python line_report.py 20260308 ./20260308 d
+# Sort by date (d), output markdown (md)
+python line_report.py 20260308 ./20260308 d md
 
-# Sort by name (n)
-python line_report.py 20260308 C:\data\20260308 n
+# Sort by name (n), output markdown (md)
+python line_report.py 20260308 C:\data\20260308 n md
+
+# Sort by date (d), output Excel (xlsx)
+python line_report.py 20260308 ./20260308 d xlsx
+
+# Sort by name (n), output Excel (xlsx)
+python line_report.py 20260308 C:\data\20260308 n xlsx
+
+# Default: output markdown if format not specified
+python line_report.py 20260308 ./20260308 d
 ```
 
 ---
 
 ## 6. Expected Output
 
-- `{Report Name}.md` file in the input folder
-- Console output showing processing status
+- `{Report Name}.md` file (when format=`md`) in the input folder
+- `{Report Name}.xlsx` file (when format=`xlsx`) in the input folder
+- Console output showing processing status and selected format
