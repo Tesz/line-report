@@ -192,9 +192,12 @@ The Detail sheet contains the full report with images embedded:
 **Detail Sheet Features:**
 - **Image embedding:** All images are actually inserted into Excel cells
 - **Image sizing:** 
-  - Maximum width: 10cm
+  - Maximum width: 10cm per image
   - Height: Auto-adjusted based on original aspect ratio
-  - Images stacked vertically within each entry
+  - Images arranged horizontally (left to right) within each entry
+- **Image spacing:** Calculate spacing based on image width to prevent overlap
+  - Leave minimum 5 points between images
+  - Adjust column width to fit all images in entry
 - **Spacing:** Empty rows between entries for separation
 - **Text formatting:**
   - Entry header: Bold, font size 12

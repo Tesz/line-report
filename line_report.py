@@ -440,49 +440,81 @@ def generate_excel(entries, image_files, report_name, output_path, folder):
             ws_detail.set_row(current_row, 60)  # Set row height for text
             current_row += 1
         
-        # === Images (embedded with xlsxwriter) ===
-        for img_name in entry_images:
-            img_path = folder_path / img_name
-            if img_path.exists():
-                try:
-                    # Calculate scale to fit max width 10cm (~284 points at 96 DPI)
-                    max_width_pt = 10 * 28.35  # 283.5 points
-                    
-                    if PIL_AVAILABLE:
-                        try:
-                            with Image.open(str(img_path)) as img:
-                                img_width_px = img.width
-                                img_height_px = img.height
-                                
-                                # Calculate scale to fit max width
-                                if img_width_px > max_width_pt:
-                                    x_scale = max_width_pt / img_width_px
-                                    y_scale = x_scale  # Keep aspect ratio
-                                else:
-                                    x_scale = 1
-                                    y_scale = 1
-                        except:
+        # === Images (embedded with xlsxwriter, arranged horizontally) ===
+        if entry_images:
+            # Calculate positions for each image (horizontal layout)
+            img_col = 0  # Start from column 0
+            max_height = 0  # Track max height for row height
+            
+            for img_name in entry_images:
+                img_path = folder_path / img_name
+                if img_path.exists():
+                    try:
+                        # Calculate scale to fit max width 10cm (~284 points at 96 DPI)
+                        max_width_pt = 10 * 28.35  # 283.5 points
+                        
+                        if PIL_AVAILABLE:
+                            try:
+                                with Image.open(str(img_path)) as img:
+                                    img_width_px = img.width
+                                    img_height_px = img.height
+                                    
+                                    # Calculate scale to fit max width
+                                    if img_width_px > max_width_pt:
+                                        x_scale = max_width_pt / img_width_px
+                                        y_scale = x_scale  # Keep aspect ratio
+                                    else:
+                                        x_scale = 1
+                                        y_scale = 1
+                                    
+                                    # Calculate actual width after scaling (in points)
+                                    actual_width_pt = img_width_px * x_scale
+                            except:
+                                x_scale = 1
+                                y_scale = 1
+                                actual_width_pt = 100  # Default fallback
+                        else:
                             x_scale = 1
                             y_scale = 1
-                    else:
-                        x_scale = 1
-                        y_scale = 1
-                    
-                    # Insert image with calculated scale
-                    ws_detail.insert_image(
-                        current_row, 0,
-                        str(img_path),
-                        {'x_scale': x_scale, 'y_scale': y_scale, 'x_offset': 1, 'y_offset': 1}
-                    )
-                    current_row += 1
-                except Exception as e:
-                    # If image fails, show placeholder
-                    ws_detail.write(current_row, 0, f"[โหลดรูปไม่ได้: {img_name}]", placeholder_format)
-                    current_row += 1
-            else:
-                # Image not found
-                ws_detail.write(current_row, 0, f"[ไม่พบรูป: {img_name}]", placeholder_format)
-                current_row += 1
+                            actual_width_pt = 100
+                        
+                        # Calculate x_offset to prevent overlap
+                        # Add minimum 5 points spacing between images
+                        x_offset = max(5, int(actual_width_pt * 0.05))  # 5% of width or minimum 5pt
+                        
+                        # Insert image at current column position
+                        ws_detail.insert_image(
+                            current_row, img_col,
+                            str(img_path),
+                            {'x_scale': x_scale, 'y_scale': y_scale, 'x_offset': x_offset, 'y_offset': 1}
+                        )
+                        
+                        # Track max height for row setting
+                        if PIL_AVAILABLE:
+                            try:
+                                with Image.open(str(img_path)) as img:
+                                    scaled_height = img.height * y_scale
+                                    if scaled_height > max_height:
+                                        max_height = scaled_height
+                            except:
+                                pass
+                        
+                        # Move to next column position (approximate)
+                        img_col += 1
+                        
+                    except Exception as e:
+                        # If image fails, show placeholder
+                        ws_detail.write(current_row, img_col, f"[โหลดรูปไม่ได้: {img_name}]", placeholder_format)
+                        img_col += 1
+                else:
+                    # Image not found
+                    ws_detail.write(current_row, img_col, f"[ไม่พบรูป: {img_name}]", placeholder_format)
+                    img_col += 1
+            
+            # Set row height to accommodate images
+            if max_height > 0:
+                ws_detail.set_row(current_row, int(max_height * 1.1))  # Add 10% buffer
+            current_row += 1
         
         # === Spacing row between entries ===
         current_row += 1
