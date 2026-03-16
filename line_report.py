@@ -505,7 +505,7 @@ def generate_excel(entries, image_files, report_name, output_path, folder):
             
             # Set row height to accommodate images
             if max_height > 0:
-                ws_detail.set_row(current_row, int(max_height * 1.1))  # Add 10% buffer
+                ws_detail.set_row(current_row, int(max_height))
             current_row += 1
         
         # === Spacing row between entries ===
