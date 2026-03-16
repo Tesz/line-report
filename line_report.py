@@ -27,6 +27,7 @@ MEDIA_MARKERS = [
 
 # Supported media extensions
 IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif']
+# Note: .mpo is excluded as openpyxl doesn't support it
 VIDEO_EXTENSIONS = ['.mp4', '.mov', '.avi']
 
 # Job title prefix
@@ -413,6 +414,13 @@ def generate_excel(entries, image_files, report_name, output_path, folder):
         for img_name in entry_images:
             img_path = folder_path / img_name
             if img_path.exists():
+                # Skip unsupported image types for openpyxl
+                unsupported_exts = ['.mpo', '.bmp', '.tiff', '.tif', '.webp']
+                if img_path.suffix.lower() in unsupported_exts:
+                    cell = ws_detail.cell(row=current_row, column=1, value=f"[รูปไม่รองรับ: {img_name}]")
+                    current_row += 1
+                    continue
+                    
                 try:
                     # Load and add image
                     img = XLImage(str(img_path))
@@ -436,6 +444,7 @@ def generate_excel(entries, image_files, report_name, output_path, folder):
                 except Exception as e:
                     # If image fails to load, skip
                     print(f"  Warning: Could not load image {img_name}: {e}")
+                    cell = ws_detail.cell(row=current_row, column=1, value=f"[โหลดรูปไม่ได้: {img_name}]")
                     current_row += 1
             else:
                 # Image not found, add placeholder text
