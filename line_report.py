@@ -480,15 +480,58 @@ def generate_excel(entries, image_files, report_name, output_path, folder):
     ws_detail.column_dimensions['A'].width = 40
     ws_detail.column_dimensions['B'].width = 40
     
-    # Save file with error handling for mimetypes issues
+    # Save file
     try:
         wb.save(output_path)
     except KeyError as e:
-        # Fallback: remove all images and retry save
-        print(f"  Warning: mimetype error, removing images and retrying...")
-        # Remove all images from Detail sheet
-        for img in list(ws_detail._images):
-            ws_detail.remove_image(img)
+        # Fallback: recreate Detail sheet without images
+        print(f"  Warning: mimetype error ({e}), recreating Detail sheet without images...")
+        # Remove Detail sheet and recreate without images
+        wb.remove(ws_detail)
+        ws_detail = wb.create_sheet(title="Detail")
+        
+        # Rebuild Detail sheet without images
+        img_idx = 0
+        current_row = 1
+        
+        for entry_idx, entry in enumerate(entries, 1):
+            # Get images for this entry (just count, don't embed)
+            for _ in range(entry['media_count']):
+                if img_idx < len(ordered_images):
+                    img_idx += 1
+            
+            # Entry Header
+            header_text = f"งานที่ {entry_idx}"
+            if entry.get('date'):
+                header_text += f" - {entry['date']}"
+            if entry.get('time'):
+                header_text += f" {entry['time']}"
+            if entry.get('sender'):
+                header_text += f" - {entry['sender']}"
+            
+            cell_header = ws_detail.cell(row=current_row, column=1, value=header_text)
+            cell_header.font = Font(bold=True, size=12)
+            current_row += 1
+            
+            # Text Content
+            if entry.get('message'):
+                cell_text = ws_detail.cell(row=current_row, column=1, value=entry['message'])
+                cell_text.font = Font(size=10)
+                cell_text.alignment = Alignment(wrap_text=True, vertical='top')
+                ws_detail.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=2)
+                current_row += 1
+            
+            # Placeholder for images
+            if entry['media_count'] > 0:
+                placeholder = f"[รูปจำนวน {entry['media_count']} รูป - ไม่สามารถแสดงได้]"
+                cell_placeholder = ws_detail.cell(row=current_row, column=1, value=placeholder)
+                cell_placeholder.font = Font(size=9, italic=True, color="808080")
+                current_row += 1
+            
+            # Spacing
+            current_row += 1
+        
+        ws_detail.column_dimensions['A'].width = 60
         wb.save(output_path)
     
     print(f"✓ Excel report generated: {output_path}")
