@@ -31,7 +31,8 @@ IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif']
 VIDEO_EXTENSIONS = ['.mp4', '.mov', '.avi']
 
 # Unsupported extensions (will be skipped in Excel output)
-UNSUPPORTED_IMAGE_EXTENSIONS = ['.mpo', '.bmp', '.tiff', '.tif', '.webp']
+# Note: include both lowercase and uppercase as some systems use uppercase
+UNSUPPORTED_IMAGE_EXTENSIONS = ['.mpo', '.bmp', '.tiff', '.tif', '.webp', '.MPO', '.BMP', '.TIFF', '.TIF', '.WEBP']
 
 # Job title prefix
 JOB_TITLE = "งานที่"
@@ -44,6 +45,13 @@ from pathlib import Path
 
 # For Excel output
 try:
+    import mimetypes
+    # Register unsupported mime types for openpyxl
+    mimetypes.add_type('image/jpeg', '.mpo')
+    mimetypes.add_type('image/bmp', '.bmp')
+    mimetypes.add_type('image/tiff', '.tiff')
+    mimetypes.add_type('image/webp', '.webp')
+    
     from openpyxl import Workbook
     from openpyxl.styles import Font, Alignment, PatternFill
     from openpyxl.drawing.image import Image as XLImage
