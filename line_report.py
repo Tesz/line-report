@@ -45,17 +45,17 @@ from pathlib import Path
 # For Excel output
 try:
     import mimetypes
-    # Patch mimetypes for unsupported extensions (lowercase + uppercase)
-    mimetypes.types_map[True]['.mpo'] = 'image/jpeg'
-    mimetypes.types_map[True]['.MPO'] = 'image/jpeg'
-    mimetypes.types_map[True]['.bmp'] = 'image/bmp'
-    mimetypes.types_map[True]['.BMP'] = 'image/bmp'
-    mimetypes.types_map[True]['.tiff'] = 'image/tiff'
-    mimetypes.types_map[True]['.TIFF'] = 'image/tiff'
-    mimetypes.types_map[True]['.tif'] = 'image/tiff'
-    mimetypes.types_map[True]['.TIF'] = 'image/tiff'
-    mimetypes.types_map[True]['.webp'] = 'image/webp'
-    mimetypes.types_map[True]['.WEBP'] = 'image/webp'
+    # Add custom MIME types safely
+    mimetypes.add_type('image/jpeg', '.mpo')
+    mimetypes.add_type('image/jpeg', '.MPO')
+    mimetypes.add_type('image/bmp', '.bmp')
+    mimetypes.add_type('image/bmp', '.BMP')
+    mimetypes.add_type('image/tiff', '.tiff')
+    mimetypes.add_type('image/tiff', '.TIFF')
+    mimetypes.add_type('image/tiff', '.tif')
+    mimetypes.add_type('image/tiff', '.TIF')
+    mimetypes.add_type('image/webp', '.webp')
+    mimetypes.add_type('image/webp', '.WEBP')
     
     from openpyxl import Workbook
     from openpyxl.styles import Font, Alignment, PatternFill
@@ -480,8 +480,16 @@ def generate_excel(entries, image_files, report_name, output_path, folder):
     ws_detail.column_dimensions['A'].width = 40
     ws_detail.column_dimensions['B'].width = 40
     
-    # Save file
-    wb.save(output_path)
+    # Save file with error handling for mimetypes issues
+    try:
+        wb.save(output_path)
+    except KeyError as e:
+        # Fallback: remove all images and retry save
+        print(f"  Warning: mimetype error, removing images and retrying...")
+        # Remove all images from Detail sheet
+        for img in list(ws_detail._images):
+            ws_detail.remove_image(img)
+        wb.save(output_path)
     
     print(f"✓ Excel report generated: {output_path}")
     print(f"  - Entries: {len(entries)}")
