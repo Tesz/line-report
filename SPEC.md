@@ -224,7 +224,8 @@ The Detail sheet contains the full report with images embedded:
 ### 4.4 Excel Output Dependencies
 - When output format is `xlsx`, requires `xlsxwriter` library
 - Install via: `pip install xlsxwriter`
-- If `xlsxwriter` is not installed and `xlsx` format is selected, display error message
+- For image sizing (max 10cm width), requires `Pillow` library
+- Install via: `pip install Pillow`
 - Note: xlsxwriter is more stable than openpyxl and has better support for various image formats
 
 ---
