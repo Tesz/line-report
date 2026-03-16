@@ -27,8 +27,11 @@ MEDIA_MARKERS = [
 
 # Supported media extensions
 IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif']
-# Note: .mpo is excluded as openpyxl doesn't support it
+# Note: .mpo, .bmp, .tiff, .tif, .webp are excluded as openpyxl doesn't support them
 VIDEO_EXTENSIONS = ['.mp4', '.mov', '.avi']
+
+# Unsupported extensions (will be skipped in Excel output)
+UNSUPPORTED_IMAGE_EXTENSIONS = ['.mpo', '.bmp', '.tiff', '.tif', '.webp']
 
 # Job title prefix
 JOB_TITLE = "งานที่"
@@ -98,6 +101,9 @@ def get_media_by_name(folder):
     
     for f in folder_path.iterdir():
         if f.is_file() and f.suffix.lower() in all_extensions:
+            # Skip unsupported image types
+            if f.suffix.lower() in UNSUPPORTED_IMAGE_EXTENSIONS:
+                continue
             media.append((f.name, f.name))  # (sort_key, original_name)
     
     # Sort alphabetically by filename
@@ -114,6 +120,9 @@ def get_media_by_date(folder):
     
     for f in folder_path.iterdir():
         if f.is_file() and f.suffix.lower() in all_extensions:
+            # Skip unsupported image types
+            if f.suffix.lower() in UNSUPPORTED_IMAGE_EXTENSIONS:
+                continue
             # Get creation time
             ctime = f.stat().st_ctime
             # Use original name as secondary sort for stability
