@@ -42,6 +42,13 @@ import sys
 import re
 from pathlib import Path
 
+# For image dimension reading (to calculate scaling)
+try:
+    from PIL import Image
+    PIL_AVAILABLE = True
+except ImportError:
+    PIL_AVAILABLE = False
+
 # For Excel output
 try:
     import xlsxwriter
@@ -438,11 +445,34 @@ def generate_excel(entries, image_files, report_name, output_path, folder):
             img_path = folder_path / img_name
             if img_path.exists():
                 try:
-                    # Insert image with scaling (max width 10cm)
+                    # Calculate scale to fit max width 10cm (~284 points at 96 DPI)
+                    max_width_pt = 10 * 28.35  # 283.5 points
+                    
+                    if PIL_AVAILABLE:
+                        try:
+                            with Image.open(str(img_path)) as img:
+                                img_width_px = img.width
+                                img_height_px = img.height
+                                
+                                # Calculate scale to fit max width
+                                if img_width_px > max_width_pt:
+                                    x_scale = max_width_pt / img_width_px
+                                    y_scale = x_scale  # Keep aspect ratio
+                                else:
+                                    x_scale = 1
+                                    y_scale = 1
+                        except:
+                            x_scale = 1
+                            y_scale = 1
+                    else:
+                        x_scale = 1
+                        y_scale = 1
+                    
+                    # Insert image with calculated scale
                     ws_detail.insert_image(
                         current_row, 0,
                         str(img_path),
-                        {'x_scale': 1, 'y_scale': 1, 'x_offset': 0, 'y_offset': 0}
+                        {'x_scale': x_scale, 'y_scale': y_scale, 'x_offset': 1, 'y_offset': 1}
                     )
                     current_row += 1
                 except Exception as e:
