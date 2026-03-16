@@ -442,8 +442,9 @@ def generate_excel(entries, image_files, report_name, output_path, folder):
         
         # === Images (embedded with xlsxwriter, arranged horizontally) ===
         if entry_images:
-            # Calculate positions for each image (horizontal layout)
-            img_col = 0  # Start from column 0
+            # Use only column 0, calculate cumulative x_offset
+            x_offset = 0  # Start at beginning of column 0
+            min_spacing_pt = 5  # Minimum 5 points between images
             max_height = 0  # Track max height for row height
             
             for img_name in entry_images:
@@ -469,6 +470,11 @@ def generate_excel(entries, image_files, report_name, output_path, folder):
                                     
                                     # Calculate actual width after scaling (in points)
                                     actual_width_pt = img_width_px * x_scale
+                                    
+                                    # Track max height
+                                    scaled_height = img_height_px * y_scale
+                                    if scaled_height > max_height:
+                                        max_height = scaled_height
                             except:
                                 x_scale = 1
                                 y_scale = 1
@@ -478,38 +484,24 @@ def generate_excel(entries, image_files, report_name, output_path, folder):
                             y_scale = 1
                             actual_width_pt = 100
                         
-                        # Calculate x_offset to prevent overlap
-                        # Add minimum 5 points spacing between images
-                        x_offset = max(5, int(actual_width_pt * 0.05))  # 5% of width or minimum 5pt
-                        
-                        # Insert image at current column position
+                        # Insert image at column 0 with cumulative x_offset
                         ws_detail.insert_image(
-                            current_row, img_col,
+                            current_row, 0,
                             str(img_path),
                             {'x_scale': x_scale, 'y_scale': y_scale, 'x_offset': x_offset, 'y_offset': 1}
                         )
                         
-                        # Track max height for row setting
-                        if PIL_AVAILABLE:
-                            try:
-                                with Image.open(str(img_path)) as img:
-                                    scaled_height = img.height * y_scale
-                                    if scaled_height > max_height:
-                                        max_height = scaled_height
-                            except:
-                                pass
-                        
-                        # Move to next column position (approximate)
-                        img_col += 1
+                        # Update x_offset for next image: current position + image width + spacing
+                        x_offset += actual_width_pt + min_spacing_pt
                         
                     except Exception as e:
                         # If image fails, show placeholder
-                        ws_detail.write(current_row, img_col, f"[โหลดรูปไม่ได้: {img_name}]", placeholder_format)
-                        img_col += 1
+                        ws_detail.write(current_row, 0, f"[โหลดรูปไม่ได้: {img_name}]", placeholder_format)
+                        x_offset += 100 + min_spacing_pt  # Approximate width for placeholder
                 else:
                     # Image not found
-                    ws_detail.write(current_row, img_col, f"[ไม่พบรูป: {img_name}]", placeholder_format)
-                    img_col += 1
+                    ws_detail.write(current_row, 0, f"[ไม่พบรูป: {img_name}]", placeholder_format)
+                    x_offset += 100 + min_spacing_pt
             
             # Set row height to accommodate images
             if max_height > 0:
